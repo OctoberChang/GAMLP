@@ -44,10 +44,10 @@ If execute correctly, you should have the following performance (using our pretr
 
 **GAMLP+RLU** Number of params: 21,551,631
 
-| GAMLP+RLU | stage 0 | stage 1 | stage 2 | stage 3
-|---|---|---|---|
-| Average val accuracy (%) | 72.61±0.04 | 72.89±0.02 | 72.99±0.03 | 73.05±0.04
-| Average test accuracy (%) | 69.16±0.08 | 69.50±0.08 | 69.61±0.08 | 69.67±0.05
+| GAMLP+RLU | stage 0 | stage 1 | stage 2 | stage 3 |
+|---|---|---|---|---|
+| Average val accuracy (%) | 72.61±0.04 | 72.89±0.02 | 72.99±0.03 | 73.05±0.04 |
+| Average test accuracy (%) | 69.16±0.08 | 69.50±0.08 | 69.61±0.08 | 69.67±0.05 |
 
 **Remark:** We follow default hyper-parameters of GAMLP+RLU for our GIANT-XRT. It is possible to achieve higher performance by fine-tune it more carefully.
 
