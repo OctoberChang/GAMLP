@@ -33,7 +33,7 @@ bash run_gamlp_xrt.sh ogbn-papers100M ${NODE_EMB_PATH} ${GPU_ID}
 ```
 
 ## Results
-If execute correctly, you should have the following performance (using our pretrained GIANT-XRT features).
+If execute correctly, you should have the following performance for **ogbn-papers100M** (using our pretrained GIANT-XRT features).
 
 **GAMLP+RLU** Number of params: 21,551,631
 
