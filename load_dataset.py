@@ -147,6 +147,8 @@ def load_dataset(name, device, args):
         test_nid = splitted_idx["test"]
         g, labels = dataset[0]
         g.ndata["labels"] = labels
+        if args.node_emb_path is not None:
+            g.ndata['feat'] = torch.from_numpy(np.load(args.node_emb_path))
         g.ndata['feat'] = g.ndata['feat'].float()
         n_classes = dataset.num_classes
         labels = labels.squeeze()
@@ -159,10 +161,10 @@ def load_dataset(name, device, args):
         train_nid = splitted_idx["train"]
         val_nid = splitted_idx["valid"]
         test_nid = splitted_idx["test"]
-        g, labels = dataset[0]        
-        n_classes = dataset.num_classes        
+        g, labels = dataset[0]
+        n_classes = dataset.num_classes
         labels = labels.squeeze()
-        evaluator = get_ogb_evaluator(name)        
+        evaluator = get_ogb_evaluator(name)
     print(f"# Nodes: {g.number_of_nodes()}\n"
           f"# Edges: {g.number_of_edges()}\n"
           f"# Train: {len(train_nid)}\n"
@@ -192,7 +194,7 @@ def prepare_data(device, args, teacher_probs):
             print("Done preprocessing")
         _, num_feats, in_feats = feats[0].shape
     elif args.dataset == 'ogbn-papers100M':
-        g = dgl.add_reverse_edges(g, copy_ndata=True)   
+        g = dgl.add_reverse_edges(g, copy_ndata=True)
         feat=g.ndata.pop('feat')
     gc.collect()
     label_emb = None
@@ -200,16 +202,17 @@ def prepare_data(device, args, teacher_probs):
         label_emb = prepare_label_emb(args, g, labels, n_classes, train_nid, val_nid, test_nid, teacher_probs)
     # move to device
     if args.dataset=='ogbn-papers100M':
-      
+        if args.node_emb_path is None:
+            raise ValueError(f"for ogbn-papers100M, args.node_emb_path CAN NOT be None!")
         feats=[]
         for i in range(args.num_hops+1):
-            feats.append(torch.load(f"/data2/zwt/ogbn_papers100M/feat/papers100m_feat_{i}.pt"))
+            feats.append(torch.load(f"{args.node_emb_path}_{i}.pt"))
         in_feats=feats[0].shape[1]
         '''
         g.ndata['feat']=feat
         feats=neighbor_average_features(g,args)
         in_feats=feats[0].shape[1]
-        
+
         for i, x in enumerate(feats):
             feats[i] = torch.cat((x[train_nid], x[val_nid], x[test_nid]), dim=0)
         '''

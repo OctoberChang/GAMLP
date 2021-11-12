@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 import numpy as np
 import torch
@@ -29,7 +30,9 @@ def get_n_params(model):
 
 
 def run(args, device):
-    checkpt_file = f"./output/{args.dataset}/"+uuid.uuid4().hex
+    args.output_dir =  f"./output/{args.dataset}"
+    os.makedirs(args.output_dir, exist_ok=True)
+    checkpt_file = "{}/{}".format(args.output_dir, uuid.uuid4().hex)
 
     for stage, epochs in enumerate(args.stages):
         if stage > 0 and args.use_rlu:
@@ -47,7 +50,7 @@ def run(args, device):
             confident_nid = torch.arange(len(predict_prob))[
                     predict_prob.max(1)[0] > args.threshold]
             extra_confident_nid = confident_nid[confident_nid >= len(
-                    train_nid)]            
+                    train_nid)]
             print(f'Stage: {stage}, confident nodes: {len(extra_confident_nid)}')
             enhance_idx = extra_confident_nid
             if len(extra_confident_nid) > 0:
@@ -55,7 +58,7 @@ def run(args, device):
                         enhance_idx, batch_size=int(args.batch_size*len(enhance_idx)/(len(enhance_idx)+len(train_nid))), shuffle=True, drop_last=False)
                 gc.collect()
             teacher_probs = torch.zeros(predict_prob.shape[0], predict_prob.shape[1])
-            teacher_probs[enhance_idx,:] =   predict_prob[enhance_idx,:]         
+            teacher_probs[enhance_idx,:] =   predict_prob[enhance_idx,:]
         else:
             teacher_probs = None
 
@@ -168,7 +171,7 @@ def main(args):
         print(f"Run {i} start training")
         set_seed(args.seed+i)
         best_val, best_test, preds = run(args, device)
-        np.save(f"output/{args.dataset}/output_{i}.npy", preds.numpy())
+        np.save(f"{args.output_dir}/output_{i}.npy", preds.numpy())
         val_accs.append(best_val)
         test_accs.append(best_test)
 
@@ -220,7 +223,7 @@ if __name__ == "__main__":
     parser.add_argument("--label-drop", type=float, default=0.5,
                         help="label feature dropout of model")
     parser.add_argument("--gama", type=float, default=0.5,
-                        help="parameter for the KL loss")                        
+                        help="parameter for the KL loss")
     parser.add_argument("--pre-process", action='store_true', default=False,
                         help="whether to process the input features")
     parser.add_argument("--residual", action='store_true', default=False,
@@ -229,10 +232,10 @@ if __name__ == "__main__":
                         help="the activation function of the model")
     parser.add_argument("--method", type=str, default="JK_GAMLP",
                         help="the model to use")
-    parser.add_argument("--use-emb", type=str)
-    parser.add_argument("--root", type=str, default='/data4/zwt/')
-    parser.add_argument("--emb_path", type=str, default='/data4/zwt/NARS-main')
-    parser.add_argument("--use-relation-subsets", type=str, default='/data4/zwt/NARS-main/sample_relation_subsets/examples/mag')
+    #parser.add_argument("--use-emb", type=str)
+    parser.add_argument("--root", type=str, required=True, default=None)
+    parser.add_argument("--node_emb_path", type=str, default=None)
+    #parser.add_argument("--use-relation-subsets", type=str, default='/data4/zwt/NARS-main/sample_relation_subsets/examples/mag')
     parser.add_argument("--use-rlu", action='store_true', default=False,
                         help="whether to use the reliable data distillation")
     parser.add_argument("--train-num-epochs", nargs='+',type=int, default=[100, 100],
@@ -243,7 +246,7 @@ if __name__ == "__main__":
                         help="whether to process the input features")
     parser.add_argument("--bns", action='store_true', default=False,
                         help="whether to process the input features")
-    
+
     args = parser.parse_args()
     print(args)
     main(args)

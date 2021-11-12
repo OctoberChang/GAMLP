@@ -1,69 +1,78 @@
-# Graph Attention Multi-Layer Perceptron
+# GIANT-XRT with GAMLP+RLU
 
-## Environments
+This is the repository for reproducing the results in our paper: [[Node Feature Extraction by Self-Supervised Multi-scale Neighborhood Prediction]](https://arxiv.org/pdf/2111.00064.pdf) for the combination of GIANT-XRT with GAMLP+RLU.
 
-Implementing environment: Xeon(R) Platinum 8255C (CPU), 376GB(RAM), Tesla V100 32GB (GPU), Ubuntu 16.04 (OS).
+## Step 0: Install GIANT and get GIANT-XRT node features.
+Please follow the instruction in [[GIANT]](https://github.com/amzn/pecos/tree/mainline/examples/giant-xrt) to get the GIANT-XRT node features.
 
-## Requirements
+## Step 1: Git clone this repo.
+After following the steps in [[GIANT]](https://github.com/amzn/pecos/tree/mainline/examples/giant-xrt), go to the folder
+`pecos/examples/giant-xrt`
+Then git clone this repo in the folder `giant-xrt` directly.
 
-The PyTorch version we use is torch 1.7.1+cu101. Please refer to the official website -- https://pytorch.org/get-started/locally/ -- for the detailed installation instructions.
-
-To install other requirements:
-
-```setup
-pip install -r requirements.txt
+## Step 2: Install additional packages.
+If you install and run GIANT correctly, you should only need to additionally install [dgl>=0.6.1](https://github.com/dmlc/dgl).
+See [here](https://www.dgl.ai/pages/start.html) for pip/conda installation instruction for dgl.
+In our experiment, we use the following
 ```
-## preprocess
+# DGL's cudnn version need to be exactly the same as locally-installed CUDA version!
+# for our p3dn.24xlarge, its cu11.0 now
+pip install dgl-cu110 -f https://data.dgl.ai/wheels/repo.html
+```
 
-To generate the ComplEx embedding of ogbn-mag, we provide the bash command in the ./data/, you can follow the instruction in the https://github.com/facebookresearch/NARS
+## Step 3: Run the experiment.
+Go to the folder `giant-xrt`. 
 
-To generate the embedding of ogbn-papers100M, we also provide python script in the ./data/ folder. You can do the feature process before training.
-
-
-## Training
-
-To reproduce the results of **GAMLP+RLU** on OGB datasets, please run following commands.
+To reproduce the GIANT-XRT results of **GAMLP+RLU** on OGB datasets, please run following commands.
 
 For **ogbn-products**:
-
-###### Params: 3335831
-
 ```bash
-python main.py --use-rlu --method R_GAMLP_RLU --stages 400 300 300 300 --train-num-epochs 0 0 0 0 --threshold 0.85 --input-drop 0.2 --att-drop 0.5 --label-drop 0 --pre-process --residual --dataset ogbn-products --num-runs 10 --eval 10 --act leaky_relu --batch 50000 --patience 300 --n-layers-1 4 --n-layers-2 4 --bns --gama 0.1
+GPU_ID=0
+NODE_EMB_PATH=../proc_data_xrt/ogbn-products/X.all.xrt-emb.npy
+bash run_gamlp_xrt.sh ogbn-products ${NODE_EMB_PATH} ${GPU_ID}
 ```
 
 For **ogbn-papers100M**:
-
-###### Params: 16308751
-
 ```bash
-python ./data/preprocess_papers100m.py --num-hops 6
-
-python main.py --use-rlu --method R_GAMLP_RLU --stages 100 150 150 150 --train-num-epochs 0 0 0 0 --threshold 0 --input-drop 0 --att-drop 0 --label-drop 0 --dropout 0.5 --pre-process --dataset ogbn-papers100M --num-runs 3 --eval 1 --act sigmoid --batch 5000 --patience 300 --n-layers-2 6 --label-num-hops 9 --num-hops 6 --hidden 1024 --bns --temp 0.001
+GPU_ID=0
+NODE_EMB_PATH=../proc_data_xrt/ogbn-papers100M/X.all.xrt-emb.npy
+bash run_gamlp_xrt.sh ogbn-papers100M ${NODE_EMB_PATH} ${GPU_ID}
 ```
 
-For **ogbn-mag**:
+## Results
+If execute correctly, you should have the following performance (using our pretrained GIANT-XRT features).
 
-###### Params: 6734882
+**GAMLP+RLU** Number of params: 21,551,631
 
-```bash
-python main.py --use-rlu --method JK_GAMLP_RLU --stages 250 200 200 200 --train-num-epochs 0 0 0 0 --threshold 0.4 --input-drop 0.1 --att-drop 0 --label-drop 0 --pre-process --residual --dataset ogbn-mag --num-runs 10 --eval 10 --act leaky_relu --batch 10000 --patience 300 --n-layers-1 4 --n-layers-2 4 --label-num-hops 3 --bns --gama 10 --use-relation-subsets ./data/mag --emb_path ./data/
+| GAMLP+RLU | stage 0 | stage 1 | stage 2 | stage 3
+|---|---|---|---|
+| Average val accuracy (%) | 72.61±0.04 | 72.89±0.02 | 72.99±0.03 | 73.05±0.04
+| Average test accuracy (%) | 69.16±0.08 | 69.50±0.08 | 69.61±0.08 | 69.67±0.05
+
+**Remark:** We follow default hyper-parameters of GAMLP+RLU for our GIANT-XRT. It is possible to achieve higher performance by fine-tune it more carefully.
+
+For more details about GAMLP, please check their original [README](https://github.com/PKU-DAIR/GAMLP).
+
+## Citation
+If you find our code useful, please consider citing both our paper and GAMLP work.
+
+Our GIANT-XRT paper:
+```
+@article{chien2021node,
+  title={Node Feature Extraction by Self-Supervised Multi-scale Neighborhood Prediction},
+  author={Eli Chien and Wei-Cheng Chang and Cho-Jui Hsieh and Hsiang-Fu Yu and Jiong Zhang and Olgica Milenkovic and Inderjit S Dhillon},
+  journal={arXiv preprint arXiv:2111.00064},
+  year={2021}
+}
 ```
 
-To reproduce the results of **GAMLP**, run only the first stage will do the job.
-
-
-
-## Node Classification Results:
-
-Performance comparison on **ogbn-products**:
-
-![image-20210819193909175](./products_perf.png)
-
-Performance comparison on **ogbn-papers100M**:
-
-![image-20210819194124961](./papers100M_perf.png)
-
-Performance comparison on **ogbn-mag**:
-
-![image-20210819194235072](./mag_perf.png)
+GAMLP paper:
+```
+@article{zhang2021graph,
+  title={Graph Attention Multi-Layer Perceptron},
+  author={Zhang, Wentao and Yin, Ziqi and Sheng, Zeang and Ouyang, Wen and Li, Xiaosen and Tao, Yangyu and Yang, Zhi and Cui, Bin},
+  journal={arXiv preprint arXiv:2108.10097},
+  year={2021}
+}
+```
+i

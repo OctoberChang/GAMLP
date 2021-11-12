@@ -1,6 +1,6 @@
 import argparse
 from tqdm import tqdm
-
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch_sparse import SparseTensor
@@ -14,6 +14,8 @@ from ogb.nodeproppred import PygNodePropPredDataset
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_hops', type=int, default=6)
 parser.add_argument('--root', type=str, default='./')
+parser.add_argument('--pretrained_emb_path', type=str, default=None)
+parser.add_argument('--output_emb_prefix', type=str, default='./ogbn-papers100M_node-emb_w2v')
 args = parser.parse_args()
 print(args)
 
@@ -22,8 +24,13 @@ split_idx = dataset.get_idx_split()
 train_idx, valid_idx, test_idx = split_idx['train'], split_idx['valid'], split_idx['test']
 data = dataset[0]
 
-x = data.x.numpy()
+x = None
+if args.pretrained_emb_path is not None:
+    x = np.load(args.pretrained_emb_path)
+else:
+    x = data.x.numpy()
 N = data.num_nodes
+print("Node Embeddings", x.shape)
 
 path = './adj_gcn.pt'
 if osp.exists(path):
@@ -52,12 +59,10 @@ adj = adj.to_scipy(layout='csr')
 
 print('Start processing')
 
-saved = torch.cat((x[train_idx], x[valid_idx], x[test_idx]), dim=0)
-torch.save(torch.from_numpy(saved).to(
-        torch.float), f'./papers100m_feat_0.pt')
+saved = np.concatenate((x[train_idx], x[valid_idx], x[test_idx]), axis=0)
+torch.save(torch.from_numpy(saved).to(torch.float), f'{args.output_emb_prefix}_0.pt')
 
 for i in tqdm(range(args.num_hops)):
     x = adj @ x
-    saved = torch.cat((x[train_idx], x[valid_idx], x[test_idx]), dim=0)
-    torch.save(torch.from_numpy(saved).to(
-        torch.float), f'./papers100m_feat_{i+1}.pt')
+    saved = np.concatenate((x[train_idx], x[valid_idx], x[test_idx]), axis=0)
+    torch.save(torch.from_numpy(saved).to(torch.float), f'{args.output_emb_prefix}_{i+1}.pt')
