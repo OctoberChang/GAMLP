@@ -25,13 +25,6 @@ Go to the folder `giant-xrt`.
 
 To reproduce the GIANT-XRT results of **GAMLP+RLU** on OGB datasets, please run following commands.
 
-For **ogbn-products**:
-```bash
-GPU_ID=0
-NODE_EMB_PATH=../proc_data_xrt/ogbn-products/X.all.xrt-emb.npy
-bash run_gamlp_xrt.sh ogbn-products ${NODE_EMB_PATH} ${GPU_ID}
-```
-
 For **ogbn-papers100M**:
 ```bash
 GPU_ID=0
